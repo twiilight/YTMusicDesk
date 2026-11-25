@@ -1,55 +1,60 @@
-# YouTube Music Desktop (macOS)
+<div align="center">
+  <img src="assets/app-icon.png" width="96" height="96" alt="YouTube Music for macOS Icon" />
 
-一个原生、轻量、Apple Music 审美风格的 macOS YouTube Music 桌面客户端，基于 **Swift 6 + SwiftUI / AppKit + WKWebView** 构建。
+  <h1>YouTube Music for macOS</h1>
 
-底层复用官方 YouTube Music 网页音频流与歌单生态，上层以原生 SwiftUI 接管底部控制条与沉浸式滚动歌词播放器，遵循高内聚、低耦合的模块化设计。
+  <p>
+    An unofficial, lightweight native YouTube Music desktop app for macOS.
+  </p>
 
-## 特性概览
+  <p>
+    <strong>macOS 14+</strong> &nbsp;·&nbsp;
+    <strong>Swift 6 &amp; SwiftUI</strong> &nbsp;·&nbsp;
+    <strong>Native WebKit</strong> &nbsp;·&nbsp;
+    <strong>~3 MB</strong>
+  </p>
 
-- **原生流光毛玻璃底部播放条**：自动隐藏网页自带底栏，替换为融合当前专辑封面微光色调的 macOS 磨砂播放条，支持平滑拖拽进度条、喜欢/随机/循环/切歌、音量滑块及一键展开沉浸模式。
-- **Apple Music 风格沉浸式「正在播放 + 滚动歌词」**（快捷键 `⌘L` / `Esc` 收起）：
-  - 根据专辑封面自动提取三色调流光渐变背景并平滑过渡；
-  - 左侧唱片大封面与柔和色彩投影（播放/暂停带呼吸缩放动效）；
-  - 右侧支持逐行居中滚动歌词、聚焦放大与轻景深模糊（鼠标悬停清晰预览）、点击任意歌词行立即跳转播放。
-- **多源时间轴歌词匹配与本地缓存**：自动清理 YouTube Music 曲目后缀噪声（如 `(Official MV)`、`[HD]`、`- Topic`），优先匹配开源 **LRCLIB** 时间轴 LRC 歌词并在缺失时平滑回退，本地磁盘缓存秒开。
-- **沉浸式深色融合标题栏与 macOS 原生礼仪**：原生 `unifiedCompact` 透明深色标题栏、关闭窗口保持后台播放（点 Dock 恢复，`⌘Q` 彻底退出）、持久化登录态、独立 Google OAuth 登录弹窗与中英文原生菜单栏。
+  <p>
+    <strong>English</strong> &nbsp;|&nbsp; <a href="README.zh-CN.md">简体中文</a>
+  </p>
+</div>
 
-## 架构设计（高内聚 · 低耦合）
+<br />
 
-项目按单一职责划分为 6 个 SwiftPM 模块，依赖严格单向流动：
+<p align="center">
+  <img src="assets/preview-playlist.png" alt="Example Playlist & Native Frosted Player Bar" width="100%" />
+</p>
 
-```text
-                    ┌───────────────────┐
-                    │    CoreDomain     │  纯领域模型、导航路由、播放/歌词/插件协议
-                    └─────────┬─────────┘
-         ┌──────────────┬─────┴──────┬──────────────┐
-         ▼              ▼            ▼              ▼
-┌─────────────────┐ ┌────────┐ ┌────────────┐ ┌──────────────┐
-│ WebEnhancements │ │WebEng. │ │LyricsServ. │ │ DesignSystem │
-│ 隐藏网页底栏与JS │ │WKWebV. │ │LRC解析/查询 │ │ 封面配色/底栏/│
-│  双向播放桥接    │ │与OAuth │ │ 与本地缓存  │ │ 沉浸滚动歌词  │
-└────────┬────────┘ └───┬────┘ └─────┬──────┘ └──────┬───────┘
-         └──────────────┴────────────┴───────────────┘
-                               ▼
-                    ┌───────────────────┐
-                    │  YoutubeMusicApp  │  薄组装层：窗口、菜单栏、协调器与生命周期
-                    └───────────────────┘
-```
+<p align="center">
+  <img src="assets/preview-lyrics.png" alt="Immersive Now Playing & Synced Scrolling Lyrics" width="100%" />
+</p>
 
-## 构建、测试与安装
+## Quick Start
 
-环境要求：macOS 14.0+、Swift 6+（Xcode 或 Command Line Tools 均可）。
+Requires **macOS 14.0+** and **Swift 6+** (Xcode or Command Line Tools).
 
 ```bash
-# 运行全部单元测试
-make test
-
-# 构建 Release 版 macOS 应用包 (dist/YouTube Music.app)
-make app
-
-# 构建并立即启动
-make run
-
-# 构建并安装到 /Applications/YouTube Music.app
+# Build and install to /Applications (available in Launchpad & Spotlight)
 make install
+
+# Or build and run directly
+make run
 ```
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+| :--- | :--- |
+| `⌘L` / `Esc` | Toggle Immersive Lyrics & Now Playing |
+| `⌥⌘P` | Play / Pause |
+| `⌥⌘←` / `⌥⌘→` | Previous / Next Track |
+| `⌥⌘↑` / `⌥⌘↓` / `⌥⌘M` | Volume Up / Down / Mute |
+| `⌥⌘L` | Like Current Track |
+| `⌘[` / `⌘]` / `⌘R` | Back / Forward / Reload |
+| `⌘W` / `⌘Q` | Hide Window (Keep Playing) / Quit |
+
+---
+
+<p align="center">
+  <sub>Unofficial desktop client. Audio playback and account services are provided directly by YouTube Music; synced lyrics are powered by <a href="https://lrclib.net">LRCLIB</a>.</sub>
+</p>

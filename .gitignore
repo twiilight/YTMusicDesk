@@ -43,3 +43,6 @@ DerivedData/
 *.tmp
 *.swp
 *~
+
+# Local design docs (untracked)
+docs/DESIGN.md

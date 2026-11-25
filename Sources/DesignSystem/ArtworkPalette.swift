@@ -43,7 +43,19 @@ public final class ArtworkVisualStore {
 
     private let maxCachedItems = 36
 
-    public init() {}
+    public init(
+        initialImage: NSImage? = nil,
+        initialPalette: ArtworkPalette? = nil
+    ) {
+        self.currentImage = initialImage
+        if let initialPalette {
+            self.palette = initialPalette
+        } else if let initialImage {
+            self.palette = Self.extractPalette(from: initialImage)
+        } else {
+            self.palette = .obsidianDefault
+        }
+    }
 
     public func update(artworkURL: URL?) {
         guard artworkURL != loadedURL else { return }
