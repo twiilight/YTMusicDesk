@@ -68,5 +68,5 @@ make dmg
 ---
 
 <p align="center">
-  <sub>Unofficial desktop client licensed under <a href="LICENSE">MIT</a>. Audio playback and account services are provided directly by YouTube Music; synced lyrics are powered by <a href="https://lrclib.net">LRCLIB</a>.</sub>
+  <sub>YTMusicDesk is an independent, unofficial project licensed under <a href="LICENSE">MIT</a> and is not affiliated with or endorsed by Google LLC or YouTube. All trademarks belong to their respective owners. Synced lyrics are powered by <a href="https://lrclib.net">LRCLIB</a>.</sub>
 </p>

@@ -68,5 +68,5 @@ make dmg
 ---
 
 <p align="center">
-  <sub>基于 <a href="LICENSE">MIT</a> 协议开源的非官方桌面客户端。音乐内容与账号体系均直接由官方 YouTube Music 网页提供，时间轴歌词由 <a href="https://lrclib.net">LRCLIB</a> 提供支持。</sub>
+  <sub>YTMusicDesk 是基于 <a href="LICENSE">MIT</a> 协议开源的独立非官方客户端，与 Google LLC 或 YouTube 无任何关联或背书，相关商标归各自所有者所有。时间轴歌词由 <a href="https://lrclib.net">LRCLIB</a> 提供支持。</sub>
 </p>
