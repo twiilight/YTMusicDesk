@@ -29,7 +29,19 @@
   <img src="assets/preview-lyrics.png" alt="Immersive Now Playing & Synced Scrolling Lyrics" width="100%" />
 </p>
 
-## 快速开始
+## 安装使用
+
+### 直接下载安装包（推荐）
+
+前往 **Releases** 下载最新版 `.dmg`（通用架构，支持 Apple Silicon 与 Intel，需 **macOS 14.0+**），打开后将 **YouTube Music.app** 拖入 **Applications** 即可。
+
+> 由于项目采用本地 ad-hoc 签名（未公证），首次打开如遇 macOS 提示“无法验证开发者”或“已损坏”，在终端执行一次以下命令即可：
+>
+> ```bash
+> xattr -cr "/Applications/YouTube Music.app"
+> ```
+
+### 从源码构建
 
 环境要求：**macOS 14.0+** 与 **Swift 6+**（安装 Xcode 或 Command Line Tools 均可）。
 
@@ -37,8 +49,8 @@
 # 构建并安装到「应用程序」（自动出现在启动台与聚焦搜索）
 make install
 
-# 或仅构建并直接运行
-make run
+# 打包通用架构 .dmg 与 .zip 发布包到 dist/
+make dmg
 ```
 
 ## 快捷键
@@ -56,5 +68,5 @@ make run
 ---
 
 <p align="center">
-  <sub>非官方桌面客户端，音乐内容与账号体系均直接由官方 YouTube Music 网页提供，时间轴歌词由 <a href="https://lrclib.net">LRCLIB</a> 提供支持。</sub>
+  <sub>基于 <a href="LICENSE">MIT</a> 协议开源的非官方桌面客户端。音乐内容与账号体系均直接由官方 YouTube Music 网页提供，时间轴歌词由 <a href="https://lrclib.net">LRCLIB</a> 提供支持。</sub>
 </p>

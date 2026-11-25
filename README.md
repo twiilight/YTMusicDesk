@@ -29,7 +29,19 @@
   <img src="assets/preview-lyrics.png" alt="Immersive Now Playing & Synced Scrolling Lyrics" width="100%" />
 </p>
 
-## Quick Start
+## Installation
+
+### Download Release (Recommended)
+
+Download the latest `.dmg` from **Releases** (Universal: Apple Silicon & Intel, requires **macOS 14.0+**), open it, and drag **YouTube Music.app** into **Applications**.
+
+> Because this app uses ad-hoc signing without a paid Apple Developer ID, run once in Terminal if macOS blocks first launch:
+>
+> ```bash
+> xattr -cr "/Applications/YouTube Music.app"
+> ```
+
+### Build from Source
 
 Requires **macOS 14.0+** and **Swift 6+** (Xcode or Command Line Tools).
 
@@ -37,8 +49,8 @@ Requires **macOS 14.0+** and **Swift 6+** (Xcode or Command Line Tools).
 # Build and install to /Applications (available in Launchpad & Spotlight)
 make install
 
-# Or build and run directly
-make run
+# Build universal .dmg & .zip release packages into dist/
+make dmg
 ```
 
 ## Keyboard Shortcuts
@@ -56,5 +68,5 @@ make run
 ---
 
 <p align="center">
-  <sub>Unofficial desktop client. Audio playback and account services are provided directly by YouTube Music; synced lyrics are powered by <a href="https://lrclib.net">LRCLIB</a>.</sub>
+  <sub>Unofficial desktop client licensed under <a href="LICENSE">MIT</a>. Audio playback and account services are provided directly by YouTube Music; synced lyrics are powered by <a href="https://lrclib.net">LRCLIB</a>.</sub>
 </p>

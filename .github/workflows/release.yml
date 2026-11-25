@@ -1,0 +1,85 @@
+name: Release macOS App
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish macOS Universal Release
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Resolve release tag and version
+        id: meta
+        run: |
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Run unit tests
+        run: |
+          chmod +x Scripts/run-tests.sh
+          ./Scripts/run-tests.sh
+
+      - name: Build universal .app, .dmg, and .zip
+        env:
+          APP_VERSION: ${{ steps.meta.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          UNIVERSAL: '1'
+        run: |
+          chmod +x Scripts/build-app.sh Scripts/build-release.sh
+          ./Scripts/build-release.sh
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          NOTES_FILE="$(mktemp)"
+          cat > "${NOTES_FILE}" <<'EOF'
+          ## YouTube Music for macOS
+
+          Universal macOS build (**Apple Silicon + Intel**, requires **macOS 14.0+**).
+
+          ### Installation
+          1. Download the `.dmg` file below, open it, and drag **YouTube Music.app** into **Applications**.
+          2. Because this open-source build uses ad-hoc signing (not notarized with a paid Apple Developer ID), macOS Gatekeeper may warn on first launch. Run the following command once in Terminal:
+
+          ```bash
+          xattr -cr "/Applications/YouTube Music.app"
+          ```
+
+          > 中文提示：首次打开如遇 macOS 提示“无法验证开发者”或“已损坏”，在终端执行上述 `xattr -cr` 命令一次即可正常打开。
+          EOF
+
+          DMG="dist/YouTube-Music-v${VERSION}-macOS-universal.dmg"
+          ZIP="dist/YouTube-Music-v${VERSION}-macOS-universal.zip"
+          SUMS="dist/SHA256SUMS.txt"
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" "${DMG}" "${ZIP}" "${SUMS}" --clobber
+          else
+            gh release create "${TAG}" "${DMG}" "${ZIP}" "${SUMS}" \
+              --title "YouTube Music for macOS ${TAG}" \
+              --notes-file "${NOTES_FILE}"
+          fi
