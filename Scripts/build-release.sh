@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_DISPLAY_NAME="YouTube Music"
+APP_DISPLAY_NAME="YTMusicDesk"
 RAW_VERSION="${APP_VERSION:-1.0.0}"
 APP_VERSION="${RAW_VERSION#v}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
@@ -12,7 +12,7 @@ DIST_DIR="${ROOT_DIR}/dist"
 APP_BUNDLE="${DIST_DIR}/${APP_DISPLAY_NAME}.app"
 ARCH_TAG="$([[ "${UNIVERSAL}" == "1" ]] && echo "universal" || uname -m)"
 
-ARTIFACT_BASE="YouTube-Music-v${APP_VERSION}-macOS-${ARCH_TAG}"
+ARTIFACT_BASE="YTMusicDesk-v${APP_VERSION}-macOS-${ARCH_TAG}"
 DMG_PATH="${DIST_DIR}/${ARTIFACT_BASE}.dmg"
 ZIP_PATH="${DIST_DIR}/${ARTIFACT_BASE}.zip"
 CHECKSUM_PATH="${DIST_DIR}/SHA256SUMS.txt"

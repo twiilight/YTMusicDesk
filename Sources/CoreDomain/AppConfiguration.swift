@@ -26,13 +26,13 @@ public struct AppConfiguration: Sendable, Equatable {
     public let maxZoom: Double
 
     public init(
-        appName: String = "YouTube Music",
-        bundleIdentifier: String = "com.youtubemusicdesktop.app",
+        appName: String = "YTMusicDesk",
+        bundleIdentifier: String = "com.ytmusicdesk.app",
         homeURL: URL = URL(string: "https://music.youtube.com")!,
         userAgent: String = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.3 Safari/605.1.15",
         defaultWindowSize: WindowDimensions = WindowDimensions(width: 1280, height: 820),
         minimumWindowSize: WindowDimensions = WindowDimensions(width: 780, height: 540),
-        windowFrameAutosaveName: String = "YoutubeMusicDesktopMainWindow",
+        windowFrameAutosaveName: String = "YTMusicDeskMainWindow",
         hidesWindowOnClose: Bool = true,
         zoomStep: Double = 0.1,
         minZoom: Double = 0.7,

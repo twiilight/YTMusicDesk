@@ -57,29 +57,29 @@ jobs:
         run: |
           NOTES_FILE="$(mktemp)"
           cat > "${NOTES_FILE}" <<'EOF'
-          ## YouTube Music for macOS
+          ## YTMusicDesk
 
           Universal macOS build (**Apple Silicon + Intel**, requires **macOS 14.0+**).
 
           ### Installation
-          1. Download the `.dmg` file below, open it, and drag **YouTube Music.app** into **Applications**.
+          1. Download the `.dmg` file below, open it, and drag **YTMusicDesk.app** into **Applications**.
           2. Because this open-source build uses ad-hoc signing (not notarized with a paid Apple Developer ID), macOS Gatekeeper may warn on first launch. Run the following command once in Terminal:
 
           ```bash
-          xattr -cr "/Applications/YouTube Music.app"
+          xattr -cr "/Applications/YTMusicDesk.app"
           ```
 
           > 中文提示：首次打开如遇 macOS 提示“无法验证开发者”或“已损坏”，在终端执行上述 `xattr -cr` 命令一次即可正常打开。
           EOF
 
-          DMG="dist/YouTube-Music-v${VERSION}-macOS-universal.dmg"
-          ZIP="dist/YouTube-Music-v${VERSION}-macOS-universal.zip"
+          DMG="dist/YTMusicDesk-v${VERSION}-macOS-universal.dmg"
+          ZIP="dist/YTMusicDesk-v${VERSION}-macOS-universal.zip"
           SUMS="dist/SHA256SUMS.txt"
 
           if gh release view "${TAG}" >/dev/null 2>&1; then
             gh release upload "${TAG}" "${DMG}" "${ZIP}" "${SUMS}" --clobber
           else
             gh release create "${TAG}" "${DMG}" "${ZIP}" "${SUMS}" \
-              --title "YouTube Music for macOS ${TAG}" \
+              --title "YTMusicDesk ${TAG}" \
               --notes-file "${NOTES_FILE}"
           fi

@@ -30,7 +30,7 @@ public struct LaunchSplashView: View {
             VStack(spacing: 18) {
                 VinylWaveformMark(isPulsing: isPulsing)
 
-                Text("YouTube Music")
+                Text("YTMusicDesk")
                     .font(.system(size: 16, weight: .medium))
                     .tracking(0.3)
                     .foregroundStyle(ThemeTokens.Colors.titlePrimary)

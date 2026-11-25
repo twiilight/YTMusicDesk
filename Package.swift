@@ -3,13 +3,13 @@
 import PackageDescription
 
 let package = Package(
-    name: "YoutubeMusicDesktop",
+    name: "YTMusicDesk",
     platforms: [
         .macOS(.v14)
     ],
     products: [
         .executable(
-            name: "YoutubeMusicDesktop",
+            name: "YTMusicDesk",
             targets: ["YoutubeMusicApp"]
         )
     ],

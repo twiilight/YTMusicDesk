@@ -2,7 +2,7 @@ import AppKit
 
 @main
 @MainActor
-enum YoutubeMusicDesktopEntry {
+enum YTMusicDeskEntry {
     static func main() {
         let app = NSApplication.shared
         let delegate = AppDelegate()

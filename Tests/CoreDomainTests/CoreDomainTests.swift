@@ -86,10 +86,10 @@ struct WebPageStateTests {
     @Test("Formats YouTube Music document titles cleanly for the integrated titlebar")
     func formatsDisplayTitle() {
         var state = WebPageState(rawTitle: "")
-        #expect(state.displayTitle == "YouTube Music")
+        #expect(state.displayTitle == "YTMusicDesk")
 
         state.rawTitle = "YouTube Music"
-        #expect(state.displayTitle == "YouTube Music")
+        #expect(state.displayTitle == "YTMusicDesk")
 
         state.rawTitle = "Bohemian Rhapsody - YouTube Music"
         #expect(state.displayTitle == "Bohemian Rhapsody")

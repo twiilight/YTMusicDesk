@@ -1,6 +1,6 @@
 .PHONY: build test app dmg release run install clean
 
-APP_NAME := YouTube Music.app
+APP_NAME := YTMusicDesk.app
 DIST_APP := dist/$(APP_NAME)
 VERSION ?= 1.0.0
 

@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="assets/app-icon.png" width="96" height="96" alt="YouTube Music for macOS Icon" />
+  <img src="assets/app-icon.png" width="96" height="96" alt="YTMusicDesk Icon" />
 
-  <h1>YouTube Music for macOS</h1>
+  <h1>YTMusicDesk</h1>
 
   <p>
     一款轻量、原生的 unofficial YouTube Music macOS 桌面客户端。
@@ -33,12 +33,12 @@
 
 ### 直接下载安装包（推荐）
 
-前往 **Releases** 下载最新版 `.dmg`（通用架构，支持 Apple Silicon 与 Intel，需 **macOS 14.0+**），打开后将 **YouTube Music.app** 拖入 **Applications** 即可。
+前往 **Releases** 下载最新版 `.dmg`（通用架构，支持 Apple Silicon 与 Intel，需 **macOS 14.0+**），打开后将 **YTMusicDesk.app** 拖入 **Applications** 即可。
 
 > 由于项目采用本地 ad-hoc 签名（未公证），首次打开如遇 macOS 提示“无法验证开发者”或“已损坏”，在终端执行一次以下命令即可：
 >
 > ```bash
-> xattr -cr "/Applications/YouTube Music.app"
+> xattr -cr "/Applications/YTMusicDesk.app"
 > ```
 
 ### 从源码构建

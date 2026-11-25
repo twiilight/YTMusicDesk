@@ -2,9 +2,9 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_DISPLAY_NAME="YouTube Music"
-EXECUTABLE_NAME="YoutubeMusicDesktop"
-BUNDLE_ID="com.youtubemusicdesktop.app"
+APP_DISPLAY_NAME="YTMusicDesk"
+EXECUTABLE_NAME="YTMusicDesk"
+BUNDLE_ID="com.ytmusicdesk.app"
 APP_VERSION="${APP_VERSION:-1.0.0}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 UNIVERSAL="${UNIVERSAL:-0}"

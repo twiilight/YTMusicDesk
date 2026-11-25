@@ -1,7 +1,7 @@
 <div align="center">
-  <img src="assets/app-icon.png" width="96" height="96" alt="YouTube Music for macOS Icon" />
+  <img src="assets/app-icon.png" width="96" height="96" alt="YTMusicDesk Icon" />
 
-  <h1>YouTube Music for macOS</h1>
+  <h1>YTMusicDesk</h1>
 
   <p>
     An unofficial, lightweight native YouTube Music desktop app for macOS.
@@ -33,12 +33,12 @@
 
 ### Download Release (Recommended)
 
-Download the latest `.dmg` from **Releases** (Universal: Apple Silicon & Intel, requires **macOS 14.0+**), open it, and drag **YouTube Music.app** into **Applications**.
+Download the latest `.dmg` from **Releases** (Universal: Apple Silicon & Intel, requires **macOS 14.0+**), open it, and drag **YTMusicDesk.app** into **Applications**.
 
 > Because this app uses ad-hoc signing without a paid Apple Developer ID, run once in Terminal if macOS blocks first launch:
 >
 > ```bash
-> xattr -cr "/Applications/YouTube Music.app"
+> xattr -cr "/Applications/YTMusicDesk.app"
 > ```
 
 ### Build from Source

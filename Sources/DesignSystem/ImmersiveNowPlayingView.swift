@@ -99,7 +99,7 @@ public struct ImmersiveNowPlayingView: View {
             // Title, Artist & Like
             HStack(alignment: .center, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(playbackState.track?.title ?? "YouTube Music")
+                    Text(playbackState.track?.title ?? "YTMusicDesk")
                         .font(.system(size: 20, weight: .bold))
                         .foregroundStyle(Color.white.opacity(0.96))
                         .lineLimit(1)
@@ -246,7 +246,7 @@ public struct ImmersiveNowPlayingView: View {
             heroArtwork(size: 64)
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(playbackState.track?.title ?? "YouTube Music")
+                Text(playbackState.track?.title ?? "YTMusicDesk")
                     .font(.system(size: 16, weight: .bold))
                     .foregroundStyle(.white)
                     .lineLimit(1)

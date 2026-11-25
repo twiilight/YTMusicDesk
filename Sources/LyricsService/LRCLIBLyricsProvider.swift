@@ -92,7 +92,7 @@ public struct LRCLIBLyricsProvider: LyricsProviding {
 
     private func performRequest<T: Decodable>(url: URL, as type: T.Type) async -> T? {
         var request = URLRequest(url: url, timeoutInterval: 10)
-        request.setValue("YoutubeMusicDesktop/1.0 (macOS)", forHTTPHeaderField: "User-Agent")
+        request.setValue("YTMusicDesk/1.0 (macOS)", forHTTPHeaderField: "User-Agent")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
 
         do {

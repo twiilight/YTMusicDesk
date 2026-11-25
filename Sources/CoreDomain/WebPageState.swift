@@ -52,8 +52,8 @@ public struct WebPageState: Sendable, Equatable {
     /// Clean title suitable for display in the integrated macOS titlebar.
     public var displayTitle: String {
         let trimmed = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else {
-            return "YouTube Music"
+        guard !trimmed.isEmpty, trimmed != "YouTube Music" else {
+            return "YTMusicDesk"
         }
 
         let suffix = " - YouTube Music"
