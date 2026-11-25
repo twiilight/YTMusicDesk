@@ -8,8 +8,10 @@ public struct NativePlayerBarView: View {
     private let playbackState: PlaybackState
     private let artworkStore: ArtworkVisualStore
     private let isImmersiveOpen: Bool
+    private let isFloatingLyricsOpen: Bool
     private let onCommand: (PlaybackCommand) -> Void
     private let onToggleImmersive: () -> Void
+    private let onToggleFloatingLyrics: () -> Void
 
     @State private var scrubbingTime: TimeInterval?
 
@@ -17,14 +19,18 @@ public struct NativePlayerBarView: View {
         playbackState: PlaybackState,
         artworkStore: ArtworkVisualStore,
         isImmersiveOpen: Bool,
+        isFloatingLyricsOpen: Bool = false,
         onCommand: @escaping (PlaybackCommand) -> Void,
-        onToggleImmersive: @escaping () -> Void
+        onToggleImmersive: @escaping () -> Void,
+        onToggleFloatingLyrics: @escaping () -> Void = {}
     ) {
         self.playbackState = playbackState
         self.artworkStore = artworkStore
         self.isImmersiveOpen = isImmersiveOpen
+        self.isFloatingLyricsOpen = isFloatingLyricsOpen
         self.onCommand = onCommand
         self.onToggleImmersive = onToggleImmersive
+        self.onToggleFloatingLyrics = onToggleFloatingLyrics
     }
 
     public var body: some View {
@@ -267,11 +273,25 @@ public struct NativePlayerBarView: View {
                 .frame(width: 76)
             }
 
-            LyricsPillToggleButton(
-                isActive: isImmersiveOpen,
-                isEnabled: playbackState.hasActiveTrack,
-                action: onToggleImmersive
-            )
+            HStack(spacing: 6) {
+                UtilityPillToggleButton(
+                    activeSymbol: "captions.bubble.fill",
+                    inactiveSymbol: "captions.bubble",
+                    tooltip: LocalizedCopy.floatingLyricsTooltip,
+                    isActive: isFloatingLyricsOpen,
+                    isEnabled: true,
+                    action: onToggleFloatingLyrics
+                )
+
+                UtilityPillToggleButton(
+                    activeSymbol: "quote.bubble.fill",
+                    inactiveSymbol: "quote.bubble",
+                    tooltip: LocalizedCopy.lyricsTooltip,
+                    isActive: isImmersiveOpen,
+                    isEnabled: playbackState.hasActiveTrack,
+                    action: onToggleImmersive
+                )
+            }
         }
     }
 
@@ -415,7 +435,10 @@ struct BarIconButton: View {
     }
 }
 
-private struct LyricsPillToggleButton: View {
+private struct UtilityPillToggleButton: View {
+    let activeSymbol: String
+    let inactiveSymbol: String
+    let tooltip: String
     let isActive: Bool
     let isEnabled: Bool
     let action: () -> Void
@@ -424,7 +447,7 @@ private struct LyricsPillToggleButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: isActive ? "quote.bubble.fill" : "quote.bubble")
+            Image(systemName: isActive ? activeSymbol : inactiveSymbol)
                 .font(.system(size: 13.5, weight: .semibold))
                 .foregroundStyle(
                     !isEnabled
@@ -443,7 +466,7 @@ private struct LyricsPillToggleButton: View {
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
-        .help(LocalizedCopy.lyricsTooltip)
+        .help(tooltip)
         .onHover { hovering in
             withAnimation(.easeOut(duration: 0.15)) {
                 isHovered = hovering

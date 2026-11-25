@@ -58,6 +58,8 @@ make dmg
 | Shortcut | Action |
 | :--- | :--- |
 | `⌘L` / `Esc` | Toggle Immersive Lyrics & Now Playing |
+| `⇧⌘L` | Toggle Floating Desktop Lyrics |
+| `⇧⌥⌘L` | Lock / Unlock Floating Lyrics Click-Through |
 | `⌥⌘P` | Play / Pause |
 | `⌥⌘←` / `⌥⌘→` | Previous / Next Track |
 | `⌥⌘↑` / `⌥⌘↓` / `⌥⌘M` | Volume Up / Down / Mute |

@@ -49,7 +49,8 @@ let package = Package(
             dependencies: [
                 "CoreDomain",
                 "WebEnhancements",
-                "LyricsService"
+                "LyricsService",
+                "WebEngine"
             ]
         )
     ]

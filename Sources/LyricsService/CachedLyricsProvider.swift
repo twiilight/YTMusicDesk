@@ -3,6 +3,8 @@ import CryptoKit
 import Foundation
 
 /// Actor-isolated decorator adding fast in-memory + disk caching in front of any `LyricsProviding`.
+/// Cache keys are derived from normalized `(title, artist, durationBucket)` rather than volatile video IDs
+/// alone, preventing race-condition cache poisoning across track switches.
 public actor CachedLyricsProvider: LyricsProviding {
     private let upstream: any LyricsProviding
     private let cacheDirectory: URL
@@ -21,7 +23,7 @@ public actor CachedLyricsProvider: LyricsProviding {
     }
 
     public func fetchLyrics(for track: TrackMetadata, pageFallbackText: String?) async -> LyricsDocument? {
-        let key = track.identityKey
+        let key = Self.cacheKey(for: track)
 
         if let hit = memoryCache[key] {
             return hit
@@ -41,13 +43,22 @@ public actor CachedLyricsProvider: LyricsProviding {
     }
 
     public func invalidateCache(for track: TrackMetadata) {
-        let key = track.identityKey
+        let key = Self.cacheKey(for: track)
         memoryCache.removeValue(forKey: key)
         let url = cacheFileURL(for: key)
         try? FileManager.default.removeItem(at: url)
     }
 
-    // MARK: - Disk Persistence
+    // MARK: - Keying & Disk Persistence
+
+    public static func cacheKey(for track: TrackMetadata) -> String {
+        let query = TrackQueryNormalizer.normalize(track)
+        let title = query.title.lowercased()
+        let artist = query.artist.lowercased()
+        // Round duration to 4-second buckets so slight codec/seek rounding hits cache
+        let durationBucket = query.duration.map { ($0 / 4) * 4 } ?? 0
+        return "v2|\(title)|\(artist)|\(durationBucket)"
+    }
 
     private func loadFromDisk(key: String) -> LyricsDocument? {
         let url = cacheFileURL(for: key)

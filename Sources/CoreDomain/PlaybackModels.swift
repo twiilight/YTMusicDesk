@@ -37,12 +37,15 @@ public struct TrackMetadata: Sendable, Equatable, Hashable, Codable {
         self.duration = duration
     }
 
-    /// Stable cache & identity key differentiating tracks even when `videoID` is absent.
+    /// Stable identity key combining video ID with normalized title & artist
+    /// so metadata settling after a track transition always triggers a fresh lyrics sync.
     public var identityKey: String {
+        let normTitle = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let normArtist = artist.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         if let videoID, !videoID.isEmpty {
-            return "v:\(videoID)"
+            return "v:\(videoID)|\(normTitle)|\(normArtist)"
         }
-        return "t:\(title.lowercased())|\(artist.lowercased())"
+        return "t:\(normTitle)|\(normArtist)"
     }
 }
 

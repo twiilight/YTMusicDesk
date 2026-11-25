@@ -6,7 +6,7 @@ import WebEngine
 import WebEnhancements
 
 /// Thin composition root assembling domain configuration, pluggable enhancements,
-/// WebKit engine, lyrics & visual experience coordinator, native window controller, and menus.
+/// WebKit engine, lyrics & visual experience coordinator, main window, floating lyrics HUD, and menus.
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate, MenuActionTarget {
     private let configuration: AppConfiguration
@@ -14,6 +14,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, MenuActionTarget {
     private var engineController: WebEngineController?
     private var experienceCoordinator: PlayerExperienceCoordinator?
     private var mainWindowController: MainWindowController?
+    private var floatingLyricsController: FloatingLyricsWindowController?
     private var menuBuilder: MainMenuBuilder?
 
     init(
@@ -44,12 +45,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, MenuActionTarget {
         let coordinator = PlayerExperienceCoordinator(lyricsProvider: lyricsProvider)
         self.experienceCoordinator = coordinator
 
+        engine.onPlaybackStateChanged = { [weak coordinator] state in
+            coordinator?.sync(with: state)
+        }
+
         let windowController = MainWindowController(
             configuration: configuration,
             engineController: engine,
             coordinator: coordinator
         )
         self.mainWindowController = windowController
+
+        let floatingController = FloatingLyricsWindowController(
+            engineController: engine,
+            coordinator: coordinator
+        )
+        self.floatingLyricsController = floatingController
+        coordinator.onFloatingLyricsStateChanged = { [weak floatingController] in
+            floatingController?.syncPanelState()
+        }
 
         let builder = MainMenuBuilder(appName: configuration.appName, actionTarget: self)
         self.menuBuilder = builder
@@ -60,7 +74,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, MenuActionTarget {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
+        // Restore the main window whenever it is hidden, even if the floating lyrics panel is visible.
+        if !(mainWindowController?.window?.isVisible ?? false) {
             mainWindowController?.showAndFocus()
         }
         return true
@@ -104,5 +119,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, MenuActionTarget {
         withAnimation {
             coordinator.toggleImmersive(hasActiveTrack: engine.playbackState.hasActiveTrack)
         }
+    }
+
+    func performToggleFloatingLyrics() {
+        experienceCoordinator?.toggleFloatingLyrics()
+    }
+
+    func performToggleFloatingLyricsLock() {
+        experienceCoordinator?.toggleFloatingClickThroughLocked()
     }
 }

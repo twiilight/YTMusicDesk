@@ -31,6 +31,7 @@ struct MainContentView: View {
                             playbackState: engineController.playbackState,
                             artworkStore: coordinator.artworkStore,
                             isImmersiveOpen: coordinator.isImmersivePresented,
+                            isFloatingLyricsOpen: coordinator.isFloatingLyricsVisible,
                             onCommand: { engineController.send($0) },
                             onToggleImmersive: {
                                 withAnimation(ThemeTokens.Motion.immersiveToggle) {
@@ -38,6 +39,9 @@ struct MainContentView: View {
                                         hasActiveTrack: engineController.playbackState.hasActiveTrack
                                     )
                                 }
+                            },
+                            onToggleFloatingLyrics: {
+                                coordinator.toggleFloatingLyrics()
                             }
                         )
                     }
@@ -94,15 +98,6 @@ struct MainContentView: View {
         .animation(ThemeTokens.Motion.splashFadeOut, value: engineController.state.showsLaunchSplash)
         .animation(ThemeTokens.Motion.immersiveToggle, value: coordinator.isImmersivePresented)
         .animation(.easeOut(duration: 0.22), value: engineController.state.loadFailure != nil)
-        .onChange(of: engineController.playbackState.track?.identityKey) { _, _ in
-            coordinator.sync(with: engineController.playbackState)
-        }
-        .onChange(of: engineController.playbackState.track?.artworkURL) { _, _ in
-            coordinator.sync(with: engineController.playbackState)
-        }
-        .onChange(of: engineController.playbackState.pageLyricsText) { _, _ in
-            coordinator.sync(with: engineController.playbackState)
-        }
         .preferredColorScheme(.dark)
     }
 }

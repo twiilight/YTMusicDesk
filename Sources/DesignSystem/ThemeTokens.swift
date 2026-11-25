@@ -75,4 +75,11 @@ public enum LocalizedCopy {
     public static var lyricsInstrumentalTitle: String { prefersChinese ? "纯音乐，请静心欣赏" : "Instrumental" }
     public static var plainLyricsBadge: String { prefersChinese ? "静态歌词 · 暂不支持逐行滚动" : "Plain lyrics · Time-sync unavailable" }
     public static var retryLyricsButton: String { prefersChinese ? "重新匹配歌词" : "Retry Lyrics" }
+
+    // Floating Desktop Lyrics
+    public static var floatingLyricsTooltip: String { prefersChinese ? "桌面浮动歌词 (⇧⌘L)" : "Floating Desktop Lyrics (⇧⌘L)" }
+    public static var floatingFontSmallerTooltip: String { prefersChinese ? "减小歌词字号" : "Smaller Lyrics Font" }
+    public static var floatingFontLargerTooltip: String { prefersChinese ? "增大歌词字号" : "Larger Lyrics Font" }
+    public static var floatingLockTooltip: String { prefersChinese ? "锁定鼠标穿透（按 ⇧⌥⌘L 解锁）" : "Lock Click-Through (Press ⇧⌥⌘L to Unlock)" }
+    public static var floatingCloseTooltip: String { prefersChinese ? "关闭浮动歌词 (⇧⌘L)" : "Close Floating Lyrics (⇧⌘L)" }
 }

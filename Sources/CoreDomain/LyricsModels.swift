@@ -74,4 +74,9 @@ public enum LyricsSyncEngine {
 /// Abstraction for pluggable lyrics sources (LRCLIB, page fallback, future providers).
 public protocol LyricsProviding: Sendable {
     func fetchLyrics(for track: TrackMetadata, pageFallbackText: String?) async -> LyricsDocument?
+    func invalidateCache(for track: TrackMetadata) async
+}
+
+public extension LyricsProviding {
+    func invalidateCache(for track: TrackMetadata) async {}
 }

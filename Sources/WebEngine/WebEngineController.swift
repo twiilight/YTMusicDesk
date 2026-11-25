@@ -15,6 +15,11 @@ public final class WebEngineController: NSObject, BrowserControlling, PlaybackCo
     public let configuration: AppConfiguration
     public let navigationPolicy: NavigationPolicy
 
+    /// Invoked whenever a decoded playback snapshot arrives from the web bridge,
+    /// allowing higher layers to react independently of SwiftUI view lifecycles.
+    @ObservationIgnored
+    public var onPlaybackStateChanged: (@MainActor (PlaybackState) -> Void)?
+
     let webView: YouTubeMusicWebView
 
     @ObservationIgnored
@@ -121,112 +126,23 @@ public final class WebEngineController: NSObject, BrowserControlling, PlaybackCo
     // MARK: - PlaybackControlling
 
     public func send(_ command: PlaybackCommand) {
-        let ns = WebBridgeContract.jsNamespace
-        let script: String
-
-        switch command {
-        case .togglePlayPause:
-            playbackState.isPlaying.toggle()
-            playbackState.sampledUptime = ProcessInfo.processInfo.systemUptime
-            script = "window.\(ns) && window.\(ns).dispatch('togglePlayPause');"
-
-        case .nextTrack:
-            script = "window.\(ns) && window.\(ns).dispatch('nextTrack');"
-
-        case .previousTrack:
-            script = "window.\(ns) && window.\(ns).dispatch('previousTrack');"
-
-        case .seek(let seconds):
-            let clamped = min(max(seconds, 0), max(playbackState.duration, 0))
-            playbackState.currentTime = clamped
-            playbackState.sampledUptime = ProcessInfo.processInfo.systemUptime
-            script = "window.\(ns) && window.\(ns).dispatch('seek', \(clamped));"
-
-        case .setVolume(let volume):
-            let clamped = min(max(volume, 0), 1)
-            playbackState.volume = clamped
-            if clamped > 0 { playbackState.isMuted = false }
-            script = "window.\(ns) && window.\(ns).dispatch('setVolume', \(clamped));"
-
-        case .toggleMute:
-            playbackState.isMuted.toggle()
-            script = "window.\(ns) && window.\(ns).dispatch('toggleMute');"
-
-        case .toggleLike:
-            playbackState.likeStatus = playbackState.likeStatus == .like ? .indifferent : .like
-            script = "window.\(ns) && window.\(ns).dispatch('toggleLike');"
-
-        case .toggleShuffle:
-            playbackState.isShuffled.toggle()
-            script = "window.\(ns) && window.\(ns).dispatch('toggleShuffle');"
-
-        case .cycleRepeat:
-            script = "window.\(ns) && window.\(ns).dispatch('cycleRepeat');"
-        }
-
-        webView.evaluateJavaScript(script, completionHandler: nil)
-    }
-
-    // MARK: - Bridge Message Decoding
-
-    private func handleBridgePayload(_ body: Any) {
-        guard let dict = body as? [String: Any],
-              let type = dict["type"] as? String,
-              type == "playbackState"
-        else {
-            return
-        }
-
-        let title = (dict["title"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let artist = (dict["artist"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let album = (dict["album"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let artworkURLString = dict["artworkURL"] as? String
-        let artworkURL = artworkURLString.flatMap { URL(string: $0) }
-        let videoID = dict["videoID"] as? String
-
-        let isPlaying = dict["isPlaying"] as? Bool ?? false
-        let currentTime = (dict["currentTime"] as? NSNumber)?.doubleValue ?? 0
-        let duration = (dict["duration"] as? NSNumber)?.doubleValue ?? 0
-        let volume = (dict["volume"] as? NSNumber)?.doubleValue ?? playbackState.volume
-        let isMuted = dict["isMuted"] as? Bool ?? false
-        let isShuffled = dict["isShuffled"] as? Bool ?? false
-        let repeatRaw = dict["repeatMode"] as? String ?? "off"
-        let repeatMode = RepeatMode(rawValue: repeatRaw) ?? .off
-        let likeRaw = dict["likeStatus"] as? String ?? "indifferent"
-        let likeStatus = LikeStatus(rawValue: likeRaw) ?? .indifferent
-        let hasPrevious = dict["hasPrevious"] as? Bool ?? false
-        let hasNext = dict["hasNext"] as? Bool ?? false
-        let pageLyricsText = dict["pageLyricsText"] as? String
-
-        let track: TrackMetadata? = title.isEmpty
-            ? playbackState.track
-            : TrackMetadata(
-                title: title,
-                artist: artist,
-                album: album,
-                artworkURL: artworkURL ?? playbackState.track?.artworkURL,
-                videoID: videoID,
-                duration: duration > 0 ? duration : (playbackState.track?.duration ?? 0)
-            )
-
-        playbackState = PlaybackState(
-            track: track,
-            isPlaying: isPlaying,
-            currentTime: max(0, currentTime),
-            duration: max(0, duration),
-            volume: min(max(volume, 0), 1),
-            isMuted: isMuted,
-            isShuffled: isShuffled,
-            repeatMode: repeatMode,
-            likeStatus: likeStatus,
-            hasPrevious: hasPrevious,
-            hasNext: hasNext,
-            pageLyricsText: pageLyricsText,
-            sampledUptime: ProcessInfo.processInfo.systemUptime
-        )
+        let encoded = PlaybackBridgeCodec.encode(command: command, currentState: playbackState)
+        playbackState = encoded.optimisticState
+        webView.evaluateJavaScript(encoded.javascript, completionHandler: nil)
     }
 
     // MARK: - Private Helpers
+
+    private func handleBridgePayload(_ body: Any) {
+        guard let nextState = PlaybackBridgeCodec.decodePlaybackState(
+            from: body,
+            previous: playbackState
+        ) else {
+            return
+        }
+        playbackState = nextState
+        onPlaybackStateChanged?(nextState)
+    }
 
     private func applyZoom(_ proposed: Double) {
         let clamped = min(max(proposed, configuration.minZoom), configuration.maxZoom)
@@ -269,13 +185,8 @@ public final class WebEngineController: NSObject, BrowserControlling, PlaybackCo
 
     private func handleNavigationError(_ error: Error) {
         let nsError = error as NSError
-
-        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled {
-            return
-        }
-        if nsError.domain == "WebKitErrorDomain" && nsError.code == 102 {
-            return
-        }
+        if nsError.domain == NSURLErrorDomain && nsError.code == NSURLErrorCancelled { return }
+        if nsError.domain == "WebKitErrorDomain" && nsError.code == 102 { return }
 
         let isOffline = nsError.domain == NSURLErrorDomain && (
             nsError.code == NSURLErrorNotConnectedToInternet ||
@@ -352,9 +263,7 @@ extension WebEngineController: WKNavigationDelegate {
             isNewWindowRequest: isNewWindow
         )
 
-        let decision = navigationPolicy.decide(for: request)
-
-        switch decision {
+        switch navigationPolicy.decide(for: request) {
         case .allowInMainView:
             if isNewWindow {
                 webView.load(navigationAction.request)
@@ -443,16 +352,12 @@ extension WebEngineController: WKUIDelegate {
         initiatedByFrame frame: WKFrameInfo,
         completionHandler: @escaping @MainActor () -> Void
     ) {
-        let alert = NSAlert()
-        alert.messageText = configuration.appName
-        alert.informativeText = message
-        alert.alertStyle = .informational
-        if let window = webView.window {
-            alert.beginSheetModal(for: window) { _ in completionHandler() }
-        } else {
-            alert.runModal()
-            completionHandler()
-        }
+        WebDialogPresenter.presentAlert(
+            title: configuration.appName,
+            message: message,
+            window: webView.window,
+            completion: completionHandler
+        )
     }
 
     public func webView(
@@ -461,18 +366,12 @@ extension WebEngineController: WKUIDelegate {
         initiatedByFrame frame: WKFrameInfo,
         completionHandler: @escaping @MainActor (Bool) -> Void
     ) {
-        let alert = NSAlert()
-        alert.messageText = configuration.appName
-        alert.informativeText = message
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Cancel")
-        if let window = webView.window {
-            alert.beginSheetModal(for: window) { response in
-                completionHandler(response == .alertFirstButtonReturn)
-            }
-        } else {
-            completionHandler(alert.runModal() == .alertFirstButtonReturn)
-        }
+        WebDialogPresenter.presentConfirm(
+            title: configuration.appName,
+            message: message,
+            window: webView.window,
+            completion: completionHandler
+        )
     }
 
     public func webView(
@@ -482,24 +381,13 @@ extension WebEngineController: WKUIDelegate {
         initiatedByFrame frame: WKFrameInfo,
         completionHandler: @escaping @MainActor (String?) -> Void
     ) {
-        let alert = NSAlert()
-        alert.messageText = configuration.appName
-        alert.informativeText = prompt
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Cancel")
-
-        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
-        textField.stringValue = defaultText ?? ""
-        alert.accessoryView = textField
-
-        if let window = webView.window {
-            alert.beginSheetModal(for: window) { response in
-                completionHandler(response == .alertFirstButtonReturn ? textField.stringValue : nil)
-            }
-        } else {
-            let response = alert.runModal()
-            completionHandler(response == .alertFirstButtonReturn ? textField.stringValue : nil)
-        }
+        WebDialogPresenter.presentPrompt(
+            title: configuration.appName,
+            prompt: prompt,
+            defaultText: defaultText,
+            window: webView.window,
+            completion: completionHandler
+        )
     }
 }
 

@@ -97,37 +97,47 @@ public struct PlaybackBridgeEnhancement: WebEnhancement {
 
           function readMetadata(bar) {
             const mediaMeta = (navigator.mediaSession && navigator.mediaSession.metadata) || null;
-            let title = (mediaMeta && mediaMeta.title) ? String(mediaMeta.title).trim() : '';
-            let artist = (mediaMeta && mediaMeta.artist) ? String(mediaMeta.artist).trim() : '';
-            let album = (mediaMeta && mediaMeta.album) ? String(mediaMeta.album).trim() : '';
+            let title = '';
+            let artist = '';
+            let album = '';
 
+            // 1. Prefer live `ytmusic-player-bar` DOM first (updates synchronously with track switches;
+            //    `navigator.mediaSession.metadata` can briefly lag behind in WebKit).
             if (bar) {
-              if (!title) {
-                const titleEl = bar.querySelector('.title.ytmusic-player-bar');
-                if (titleEl && titleEl.textContent) {
-                  title = titleEl.textContent.trim();
-                }
+              const titleEl = bar.querySelector('.title.ytmusic-player-bar');
+              if (titleEl && titleEl.textContent) {
+                title = titleEl.textContent.trim();
               }
-              if (!artist) {
-                const bylineEl = bar.querySelector('.byline.ytmusic-player-bar');
-                if (bylineEl && bylineEl.textContent) {
-                  const rawByline = bylineEl.textContent.trim();
-                  const segments = rawByline.split('•').map(s => s.trim()).filter(Boolean);
-                  if (segments.length > 0) { artist = segments[0]; }
-                  if (!album && segments.length > 1 && !/^\\d{4}$/.test(segments[1])) {
-                    album = segments[1];
-                  }
+              const bylineEl = bar.querySelector('.byline.ytmusic-player-bar');
+              if (bylineEl && bylineEl.textContent) {
+                const rawByline = bylineEl.textContent.trim();
+                const segments = rawByline.split('•').map(s => s.trim()).filter(Boolean);
+                if (segments.length > 0) { artist = segments[0]; }
+                if (segments.length > 1 && !/^\\d{4}$/.test(segments[1])) {
+                  album = segments[1];
                 }
               }
             }
 
-            const artworkURL = pickBestArtwork(mediaMeta, bar);
+            // 2. Fallback to MediaSession metadata (and fill album if DOM omitted it)
+            if (!title && mediaMeta && mediaMeta.title) {
+              title = String(mediaMeta.title).trim();
+            }
+            if (!artist && mediaMeta && mediaMeta.artist) {
+              artist = String(mediaMeta.artist).trim();
+            }
+            if (!album && mediaMeta && mediaMeta.album) {
+              album = String(mediaMeta.album).trim();
+            }
+
             let videoID = null;
             try {
               const api = getPlayerApi();
               if (api && typeof api.getVideoData === 'function') {
                 const vd = api.getVideoData();
                 if (vd && vd.video_id) { videoID = String(vd.video_id); }
+                if (!title && vd && vd.title) { title = String(vd.title).trim(); }
+                if (!artist && vd && vd.author) { artist = String(vd.author).trim(); }
               }
             } catch (_) {}
 
@@ -136,6 +146,16 @@ public struct PlaybackBridgeEnhancement: WebEnhancement {
                 const urlParam = new URL(window.location.href).searchParams.get('v');
                 if (urlParam) { videoID = urlParam; }
               } catch (_) {}
+            }
+
+            // Prefer bar artwork when available (stays locked to the active bar title), fallback to MediaSession.
+            let artworkURL = null;
+            const img = bar && bar.querySelector('img.image.ytmusic-player-bar');
+            if (img && img.src && !img.src.startsWith('data:image/gif')) {
+              artworkURL = upgradeArtworkURL(img.src);
+            }
+            if (!artworkURL) {
+              artworkURL = pickBestArtwork(mediaMeta, bar);
             }
 
             return { title, artist, album, artworkURL, videoID };
@@ -185,7 +205,8 @@ public struct PlaybackBridgeEnhancement: WebEnhancement {
 
           function readPageLyricsFallback() {
             const desc = document.querySelector('ytmusic-description-shelf-renderer .non-expandable.description');
-            if (desc && desc.textContent) {
+            // Only read page lyrics when the Lyrics tab is visibly mounted (avoid stale hidden DOM from prior track)
+            if (desc && desc.offsetParent !== null && desc.textContent) {
               const text = desc.textContent.trim();
               if (text.length > 20) { return text; }
             }

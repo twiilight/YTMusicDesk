@@ -21,6 +21,8 @@ protocol MenuActionTarget: AnyObject {
     func performPreviousTrack()
     func performNextTrack()
     func performToggleImmersiveLyrics()
+    func performToggleFloatingLyrics()
+    func performToggleFloatingLyricsLock()
     func performToggleLike()
     func performVolumeUp()
     func performVolumeDown()
@@ -131,6 +133,22 @@ final class MainMenuBuilder: NSObject {
                 title: zh ? "歌词与沉浸播放器" : "Lyrics & Now Playing",
                 action: #selector(handleToggleImmersiveLyrics),
                 key: "l"
+            )
+        )
+        menu.addItem(
+            makeActionItem(
+                title: zh ? "桌面浮动歌词" : "Floating Desktop Lyrics",
+                action: #selector(handleToggleFloatingLyrics),
+                key: "l",
+                modifiers: [.command, .shift]
+            )
+        )
+        menu.addItem(
+            makeActionItem(
+                title: zh ? "锁定 / 解锁浮动歌词穿透" : "Toggle Floating Lyrics Click-Through",
+                action: #selector(handleToggleFloatingLyricsLock),
+                key: "l",
+                modifiers: [.command, .shift, .option]
             )
         )
         menu.addItem(.separator())
@@ -313,6 +331,8 @@ final class MainMenuBuilder: NSObject {
     @objc private func handlePreviousTrack() { actionTarget?.performPreviousTrack() }
     @objc private func handleNextTrack() { actionTarget?.performNextTrack() }
     @objc private func handleToggleImmersiveLyrics() { actionTarget?.performToggleImmersiveLyrics() }
+    @objc private func handleToggleFloatingLyrics() { actionTarget?.performToggleFloatingLyrics() }
+    @objc private func handleToggleFloatingLyricsLock() { actionTarget?.performToggleFloatingLyricsLock() }
     @objc private func handleToggleLike() { actionTarget?.performToggleLike() }
     @objc private func handleVolumeUp() { actionTarget?.performVolumeUp() }
     @objc private func handleVolumeDown() { actionTarget?.performVolumeDown() }

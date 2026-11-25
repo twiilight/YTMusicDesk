@@ -2,6 +2,7 @@ import CoreDomain
 import Foundation
 import LyricsService
 import Testing
+import WebEngine
 import WebEnhancements
 
 @Suite("NavigationPolicy")
@@ -205,5 +206,165 @@ struct PlaybackAndLyricsTests {
         let bylineNormalized = TrackQueryNormalizer.normalize(bylineTrack)
         #expect(bylineNormalized.title == "Blinding Lights")
         #expect(bylineNormalized.artist == "The Weeknd")
+    }
+
+    @Test("Clamps floating lyrics font size preferences within bounds")
+    func clampsFloatingLyricsFontSize() {
+        var prefs = FloatingLyricsPreferences(fontSize: 24)
+        for _ in 0..<20 { prefs.increaseFontSize() }
+        #expect(prefs.fontSize == FloatingLyricsPreferences.maxFontSize)
+
+        for _ in 0..<20 { prefs.decreaseFontSize() }
+        #expect(prefs.fontSize == FloatingLyricsPreferences.minFontSize)
+    }
+
+    @Test("Resolves floating desktop lyric line across synced, intro, instrumental, and idle states")
+    func resolvesFloatingDesktopLyricLine() {
+        let idle = FloatingLyricsDisplayResolver.resolve(
+            playbackState: PlaybackState(),
+            lyricsState: .idle,
+            at: 0
+        )
+        #expect(idle.text == "YTMusicDesk")
+        #expect(idle.isActiveLyric == false)
+
+        let track = TrackMetadata(title: "Neon Horizon", artist: "Solaris Drive", duration: 234)
+        let playback = PlaybackState(track: track, isPlaying: true, currentTime: 20, duration: 234)
+        let syncedDoc = LyricsDocument(
+            source: "LRCLIB",
+            content: .synced([
+                LyricLine(id: 0, startTime: 10, text: "First lyric"),
+                LyricLine(id: 1, startTime: 18, text: "Second lyric")
+            ])
+        )
+
+        let intro = FloatingLyricsDisplayResolver.resolve(
+            playbackState: playback,
+            lyricsState: .loaded(syncedDoc),
+            at: 3.0
+        )
+        #expect(intro.text == "♪ Neon Horizon — Solaris Drive")
+        #expect(intro.isActiveLyric == false)
+
+        let active = FloatingLyricsDisplayResolver.resolve(
+            playbackState: playback,
+            lyricsState: .loaded(syncedDoc),
+            at: 19.0
+        )
+        #expect(active.text == "Second lyric")
+        #expect(active.isActiveLyric == true)
+
+        let instrumental = FloatingLyricsDisplayResolver.resolve(
+            playbackState: playback,
+            lyricsState: .loaded(LyricsDocument(source: "LRCLIB", content: .instrumental)),
+            at: 19.0,
+            prefersChinese: true
+        )
+        #expect(instrumental.text == "♪ Neon Horizon · 纯音乐")
+        #expect(instrumental.isActiveLyric == false)
+    }
+
+    @Test("Rejects unrelated songs even when they have synced lyrics")
+    func rejectsWrongSongMatches() {
+        let track = TrackMetadata(
+            title: "Christmas Song",
+            artist: "back number",
+            duration: 340
+        )
+        let query = TrackQueryNormalizer.normalize(track)
+
+        let unrelatedSynced = LRCLIBRecord(
+            trackName: "Angel in the Snow",
+            artistName: "Different Artist",
+            duration: 210,
+            syncedLyrics: "[00:11.09]There's an angel in the snow"
+        )
+        let sameTitleDifferentSong = LRCLIBRecord(
+            trackName: "Christmas Song",
+            artistName: "Nat King Cole",
+            duration: 192,
+            syncedLyrics: "[00:10.00]Chestnuts roasting on an open fire"
+        )
+
+        #expect(LRCLIBCandidateMatcher.selectBest(from: [unrelatedSynced, sameTitleDifferentSong], for: query) == nil)
+    }
+
+    @Test("Accepts localized artist name only when title is exact and duration matches closely")
+    func acceptsLocalizedArtistWithExactTitleAndDuration() {
+        let track = TrackMetadata(title: "晴天", artist: "周杰伦", duration: 269)
+        let query = TrackQueryNormalizer.normalize(track)
+
+        let localizedMatch = LRCLIBRecord(
+            trackName: "晴天",
+            artistName: "Jay Chou",
+            duration: 270,
+            syncedLyrics: "[00:28.00]故事的小黄花"
+        )
+        let wrongDuration = LRCLIBRecord(
+            trackName: "晴天",
+            artistName: "Other Singer",
+            duration: 240,
+            syncedLyrics: "[00:10.00]Wrong song"
+        )
+
+        let selected = LRCLIBCandidateMatcher.selectBest(from: [wrongDuration, localizedMatch], for: query)
+        #expect(selected == localizedMatch)
+    }
+
+    @Test("Track identityKey changes when title or artist settles for the same videoID")
+    func identityKeyReflectsMetadataSettlement() {
+        let stale = TrackMetadata(title: "Old Song", artist: "Old Artist", videoID: "newVid123")
+        let settled = TrackMetadata(title: "New Song", artist: "New Artist", videoID: "newVid123")
+        #expect(stale.identityKey != settled.identityKey)
+    }
+}
+
+@Suite("PlaybackBridgeCodec")
+struct PlaybackBridgeCodecTests {
+    @Test("Does not carry over previous track duration or artwork when switching to a new track")
+    func preventsStaleCarryoverAcrossTracks() {
+        let prevTrack = TrackMetadata(
+            title: "Song A",
+            artist: "Artist A",
+            artworkURL: URL(string: "https://example.com/a.jpg"),
+            videoID: "vidA",
+            duration: 240
+        )
+        let prevState = PlaybackState(track: prevTrack, isPlaying: true, currentTime: 80, duration: 240)
+
+        let payload: [String: Any] = [
+            "type": "playbackState",
+            "title": "Song B",
+            "artist": "Artist B",
+            "videoID": "vidB",
+            "isPlaying": true,
+            "currentTime": 0.0,
+            "duration": 0.0
+        ]
+
+        let decoded = PlaybackBridgeCodec.decodePlaybackState(from: payload, previous: prevState, sampledUptime: 100)
+        #expect(decoded?.track?.title == "Song B")
+        #expect(decoded?.track?.duration == 0)
+        #expect(decoded?.track?.artworkURL == nil)
+    }
+
+    @Test("Encodes seek and volume commands with clamped optimistic state")
+    func encodesClampedCommands() {
+        let state = PlaybackState(
+            track: TrackMetadata(title: "Demo", artist: "Artist", duration: 180),
+            isPlaying: true,
+            currentTime: 30,
+            duration: 180,
+            volume: 0.5,
+            isMuted: true
+        )
+
+        let seek = PlaybackBridgeCodec.encode(command: .seek(999), currentState: state, sampledUptime: 42)
+        #expect(seek.optimisticState.currentTime == 180)
+        #expect(seek.javascript.contains("dispatch('seek', 180.0)"))
+
+        let vol = PlaybackBridgeCodec.encode(command: .setVolume(1.5), currentState: state, sampledUptime: 42)
+        #expect(vol.optimisticState.volume == 1.0)
+        #expect(vol.optimisticState.isMuted == false)
     }
 }

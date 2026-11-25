@@ -1,8 +1,8 @@
 import CoreDomain
 import Foundation
 
-/// Fetches synced/plain lyrics from the open, keyless LRCLIB API with automatic
-/// query normalization, fuzzy search fallback, and optional YouTube Music page text fallback.
+/// HTTP client querying the open, keyless LRCLIB API with query normalization,
+/// strict validation via `LRCLIBCandidateMatcher`, and YouTube Music page text fallback.
 public struct LRCLIBLyricsProvider: LyricsProviding {
     private let session: URLSession
     private let baseURL: URL
@@ -21,21 +21,22 @@ public struct LRCLIBLyricsProvider: LyricsProviding {
             return makePageFallbackDocument(pageFallbackText)
         }
 
-        // 1. Fast exact lookup via /api/get
+        // 1. Fast exact lookup via /api/get (still validated against duration & title sanity)
         if let exact = await fetchExact(query: query),
+           LRCLIBCandidateMatcher.isAcceptable(exact, for: query),
            let doc = convertRecord(exact, source: "LRCLIB")
         {
             return doc
         }
 
-        // 2. Fuzzy search fallback via /api/search with duration & synced-lyrics scoring
+        // 2. Validated search fallback via /api/search
         if let best = await fetchBestSearchCandidate(query: query),
            let doc = convertRecord(best, source: "LRCLIB")
         {
             return doc
         }
 
-        // 3. Fallback to plain lyrics scraped from YouTube Music page if available
+        // 3. Fallback to plain lyrics scraped from visible YouTube Music lyrics panel if available
         return makePageFallbackDocument(pageFallbackText)
     }
 
@@ -71,23 +72,36 @@ public struct LRCLIBLyricsProvider: LyricsProviding {
 
         if let url = components?.url,
            let candidates = await performRequest(url: url, as: [LRCLIBRecord].self),
-           let best = pickBestCandidate(from: candidates, query: query)
+           let best = LRCLIBCandidateMatcher.selectBest(from: candidates, for: query)
         {
             return best
         }
 
-        // Broader q= fallback when artist formatting differs (e.g. localized artist name)
+        // Broader q= fallback (e.g., localized artist names) protected by strict matcher gates
         var broadComponents = URLComponents(url: baseURL.appendingPathComponent("api/search"), resolvingAgainstBaseURL: false)
         let combined = [query.title, query.artist].filter { !$0.isEmpty }.joined(separator: " ")
         broadComponents?.queryItems = [URLQueryItem(name: "q", value: combined)]
 
-        guard let broadURL = broadComponents?.url,
-              let broadCandidates = await performRequest(url: broadURL, as: [LRCLIBRecord].self)
+        if let broadURL = broadComponents?.url,
+           let broadCandidates = await performRequest(url: broadURL, as: [LRCLIBRecord].self),
+           let best = LRCLIBCandidateMatcher.selectBest(from: broadCandidates, for: query)
+        {
+            return best
+        }
+
+        // Title-only fallback strictly gated by exact title + ±4s duration match
+        // (rescues songs where YouTube Music localizes the artist name, e.g., 周杰伦 vs Jay Chou)
+        guard query.duration != nil else { return nil }
+        var titleOnly = URLComponents(url: baseURL.appendingPathComponent("api/search"), resolvingAgainstBaseURL: false)
+        titleOnly?.queryItems = [URLQueryItem(name: "track_name", value: query.title)]
+
+        guard let titleURL = titleOnly?.url,
+              let titleCandidates = await performRequest(url: titleURL, as: [LRCLIBRecord].self)
         else {
             return nil
         }
 
-        return pickBestCandidate(from: broadCandidates, query: query)
+        return LRCLIBCandidateMatcher.selectBest(from: titleCandidates, for: query)
     }
 
     private func performRequest<T: Decodable>(url: URL, as type: T.Type) async -> T? {
@@ -104,63 +118,6 @@ public struct LRCLIBLyricsProvider: LyricsProviding {
         } catch {
             return nil
         }
-    }
-
-    // MARK: - Candidate Scoring
-
-    private func pickBestCandidate(
-        from candidates: [LRCLIBRecord],
-        query: TrackQueryNormalizer.NormalizedQuery
-    ) -> LRCLIBRecord? {
-        guard !candidates.isEmpty else { return nil }
-
-        let targetTitle = query.title.lowercased()
-        let targetArtist = query.artist.lowercased()
-
-        let scored: [(record: LRCLIBRecord, score: Double)] = candidates.compactMap { candidate in
-            let hasSynced = !(candidate.syncedLyrics?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-            let hasPlain = !(candidate.plainLyrics?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-            let isInstrumental = candidate.instrumental ?? false
-            guard hasSynced || hasPlain || isInstrumental else { return nil }
-
-            var score: Double = 0
-            if hasSynced { score += 50 }
-            else if hasPlain { score += 15 }
-            else if isInstrumental { score += 10 }
-
-            let candTitle = (candidate.trackName ?? "").lowercased()
-            if candTitle == targetTitle {
-                score += 35
-            } else if candTitle.contains(targetTitle) || targetTitle.contains(candTitle) {
-                score += 18
-            }
-
-            let candArtist = (candidate.artistName ?? "").lowercased()
-            if !targetArtist.isEmpty {
-                if candArtist == targetArtist {
-                    score += 25
-                } else if candArtist.contains(targetArtist) || targetArtist.contains(candArtist) {
-                    score += 14
-                }
-            }
-
-            if let targetDuration = query.duration, let candDuration = candidate.duration {
-                let diff = abs(Double(targetDuration) - candDuration)
-                if diff <= 3 {
-                    score += 25
-                } else if diff <= 8 {
-                    score += 14
-                } else if diff <= 15 {
-                    score += 5
-                } else if diff > 35 {
-                    score -= 30
-                }
-            }
-
-            return (candidate, score)
-        }
-
-        return scored.max(by: { $0.score < $1.score })?.record
     }
 
     private func convertRecord(_ record: LRCLIBRecord, source: String) -> LyricsDocument? {
@@ -191,14 +148,4 @@ public struct LRCLIBLyricsProvider: LyricsProviding {
         guard !lines.isEmpty else { return nil }
         return LyricsDocument(source: "YouTube Music", content: .plain(lines))
     }
-}
-
-private struct LRCLIBRecord: Decodable {
-    let trackName: String?
-    let artistName: String?
-    let albumName: String?
-    let duration: Double?
-    let instrumental: Bool?
-    let plainLyrics: String?
-    let syncedLyrics: String?
 }
